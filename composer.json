@@ -4,7 +4,7 @@
     "description": "Kasir Roti Bakar Romansa - Laravel, siap deploy ke Laravel Cloud.",
     "require": {
         "php": "^8.2",
-        "laravel/framework": "^11.0",
+        "laravel/framework": "^11.44",
         "endroid/qr-code": "^4.8"
     },
     "autoload": {
