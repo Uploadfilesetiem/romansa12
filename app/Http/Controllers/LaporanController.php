@@ -53,11 +53,34 @@ class LaporanController extends Controller
         ];
     }
 
+    // Daftar catatan bebas yang diketik kasir per item (mis. nama selai/topping
+    // spesifik), diurutkan dari yang paling baru, supaya bisa ditelusuri.
+    private function daftarCatatan($data): array
+    {
+        $daftar = [];
+        foreach ($data as $t) {
+            foreach ($t->items as $it) {
+                if (!empty($it->catatan)) {
+                    $daftar[] = [
+                        'waktu' => $t->created_at,
+                        'kode' => $t->kode,
+                        'nama_produk' => $it->nama_produk,
+                        'catatan' => $it->catatan,
+                    ];
+                }
+            }
+        }
+        usort($daftar, fn ($a, $b) => $b['waktu'] <=> $a['waktu']);
+
+        return $daftar;
+    }
+
     public function index(Request $request)
     {
         [$data, $start, $end, $metode] = $this->ambilData($request);
         $ringkasan = $this->ringkasan($data);
         $rekapMenu = $this->rekapMenu($data);
+        $daftarCatatan = $this->daftarCatatan($data);
 
         return view('laporan.index', [
             'data' => $data,
@@ -67,6 +90,7 @@ class LaporanController extends Controller
             'totalTunai' => $ringkasan['totalTunai'],
             'totalQris' => $ringkasan['totalQris'],
             'rekapMenu' => $rekapMenu,
+            'daftarCatatan' => $daftarCatatan,
         ]);
     }
 

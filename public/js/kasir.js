@@ -55,6 +55,22 @@
     }
   }
 
+  function syncItemsJson() {
+    itemsJsonInput.value = JSON.stringify(
+      cart.map((it) => ({
+        produkId: it.produkId,
+        nama: it.nama,
+        harga: it.harga,
+        qty: it.qty,
+        catatan: it.catatan || '',
+      }))
+    );
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
   function render() {
     cartEl.innerHTML = '';
     if (cart.length === 0) {
@@ -65,16 +81,26 @@
         const row = document.createElement('div');
         row.className = 'cart-item';
         row.innerHTML = `
-          <div class="info">
-            <div class="nama">${it.nama}</div>
-            <div class="harga">${formatRupiah(it.harga)}</div>
+          <div class="cart-item-top">
+            <div class="info">
+              <div class="nama">${it.nama}</div>
+              <div class="harga">${formatRupiah(it.harga)}</div>
+            </div>
+            <div class="qty-ctrl">
+              <button type="button" data-act="min" data-id="${it.produkId}">-</button>
+              <span class="qty">${it.qty}</span>
+              <button type="button" data-act="plus" data-id="${it.produkId}">+</button>
+              <span class="hapus-link" data-act="hapus" data-id="${it.produkId}">hapus</span>
+            </div>
           </div>
-          <div class="qty-ctrl">
-            <button type="button" data-act="min" data-id="${it.produkId}">-</button>
-            <span class="qty">${it.qty}</span>
-            <button type="button" data-act="plus" data-id="${it.produkId}">+</button>
-            <span class="hapus-link" data-act="hapus" data-id="${it.produkId}">hapus</span>
-          </div>`;
+          <input
+            type="text"
+            class="input catatan-input"
+            data-catatan-id="${it.produkId}"
+            placeholder="Catatan (mis. nama selai/topping yang dipakai)"
+            value="${esc(it.catatan)}"
+            maxlength="120"
+          >`;
         cartEl.appendChild(row);
       });
     }
@@ -82,9 +108,7 @@
     totalEl.textContent = formatRupiah(totalCart());
     fabCount.textContent = totalQtyCart();
     fab.style.display = cart.length ? 'flex' : 'none';
-    itemsJsonInput.value = JSON.stringify(
-      cart.map((it) => ({ produkId: it.produkId, nama: it.nama, harga: it.harga, qty: it.qty }))
-    );
+    syncItemsJson();
     btnBayar.disabled = cart.length === 0;
     hitungKembalian();
     updateStokBanner();
@@ -112,7 +136,7 @@
       const harga = Number(card.dataset.harga);
       const existing = cart.find((it) => it.produkId === id);
       if (existing) existing.qty += 1;
-      else cart.push({ produkId: id, nama, harga, qty: 1 });
+      else cart.push({ produkId: id, nama, harga, qty: 1, catatan: '' });
 
       bump(card);
       fab.classList.remove('bounce');
@@ -140,6 +164,18 @@
       cart = cart.filter((it) => it.produkId !== id);
     }
     render();
+  });
+
+  // Input catatan per item: cukup update state + hidden JSON, TIDAK render
+  // ulang seluruh daftar, supaya fokus/kursor ketik tidak hilang tiap huruf.
+  cartEl.addEventListener('input', (e) => {
+    const input = e.target.closest('[data-catatan-id]');
+    if (!input) return;
+    const id = Number(input.dataset.catatanId);
+    const item = cart.find((it) => it.produkId === id);
+    if (!item) return;
+    item.catatan = input.value;
+    syncItemsJson();
   });
 
   // Kategori filter (pill)

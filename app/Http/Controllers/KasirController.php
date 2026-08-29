@@ -89,6 +89,7 @@ class KasirController extends Controller
                 $logRows = [];
                 foreach ($items as $it) {
                     $subtotal = (int) $it['harga'] * (int) $it['qty'];
+                    $catatan = isset($it['catatan']) ? trim((string) $it['catatan']) : '';
                     $itemRows[] = [
                         'transaksi_id' => $transaksiId,
                         'produk_id' => $it['produkId'],
@@ -96,6 +97,7 @@ class KasirController extends Controller
                         'harga' => $it['harga'],
                         'qty' => $it['qty'],
                         'subtotal' => $subtotal,
+                        'catatan' => $catatan !== '' ? $catatan : null,
                     ];
                     $logRows[] = [
                         'produk_id' => $it['produkId'],

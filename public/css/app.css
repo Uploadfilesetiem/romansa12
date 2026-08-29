@@ -316,11 +316,17 @@ button { font-family: inherit; cursor: pointer; }
 /* ---------- Cart list ---------- */
 .cart-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   padding: 10px 0;
   border-bottom: 1px dashed var(--line);
   animation: cardIn .25s ease;
+}
+.cart-item-top { display: flex; align-items: center; justify-content: space-between; }
+.cart-item .catatan-input {
+  margin-top: 7px;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border-radius: 9px;
 }
 .cart-item .info { flex: 1; padding-right: 8px; }
 .cart-item .nama { font-weight: 700; font-size: 13.5px; }

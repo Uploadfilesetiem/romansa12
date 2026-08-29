@@ -10,7 +10,7 @@ class TransaksiItem extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['transaksi_id', 'produk_id', 'nama_produk', 'harga', 'qty', 'subtotal'];
+    protected $fillable = ['transaksi_id', 'produk_id', 'nama_produk', 'harga', 'qty', 'subtotal', 'catatan'];
 
     protected $casts = [
         'harga' => 'integer',

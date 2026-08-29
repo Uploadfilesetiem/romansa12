@@ -23,6 +23,9 @@
           <span>{{ $it->nama_produk }} x{{ $it->qty }}</span>
           <span>Rp{{ number_format($it->harga * $it->qty, 0, ',', '.') }}</span>
         </div>
+        @if ($it->catatan)
+          <div style="font-size:10.5px;color:#7a7061;margin:-2px 0 5px;">Catatan: {{ $it->catatan }}</div>
+        @endif
       @endforeach
 
       <div class="divider-dash"></div>

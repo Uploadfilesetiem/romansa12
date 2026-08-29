@@ -56,6 +56,27 @@
     </table>
   </div>
 
+  @if (count($daftarCatatan))
+    <div class="card table-wrap" style="margin-bottom:16px;">
+      <div style="padding:12px 14px 0;">
+        <div class="section-title">Catatan Kasir per Item</div>
+        <div class="section-sub">Catatan bebas yang diketik kasir (mis. nama selai/topping spesifik) pada periode ini.</div>
+      </div>
+      <table class="list" style="margin-top:8px;">
+        <thead><tr><th>Waktu</th><th>Menu</th><th>Catatan</th></tr></thead>
+        <tbody>
+          @foreach ($daftarCatatan as $c)
+            <tr>
+              <td style="white-space:nowrap;">{{ $c['waktu']->translatedFormat('d M, H:i') }}</td>
+              <td>{{ $c['nama_produk'] }}</td>
+              <td>{{ $c['catatan'] }}</td>
+            </tr>
+          @endforeach
+        </tbody>
+      </table>
+    </div>
+  @endif
+
   <div class="flex-between" style="margin-bottom:10px;">
     <div class="section-title">Riwayat Transaksi</div>
     <a href="{{ route('laporan.cetak', request()->query()) }}" target="_blank">
