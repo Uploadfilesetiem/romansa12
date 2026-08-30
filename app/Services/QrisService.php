@@ -10,7 +10,13 @@ class QrisService
 {
     public function toDinamis(string $qrisStatis, int $nominal): string
     {
-        $qrisStatis = trim(preg_replace('/\s+/', '', $qrisStatis));
+        // PENTING: hanya buang karakter baris baru/tab yang mungkin ikut
+        // ter-copy saat menempel teks (mis. line-wrap dari editor), JANGAN
+        // buang spasi biasa — banyak field di dalam QRIS (nama toko, kota)
+        // memang mengandung spasi, dan panjang tiap field dihitung per
+        // karakter. Membuang spasi di dalamnya akan menggeser semua field
+        // setelahnya dan membuat QRIS jadi rusak/tidak valid.
+        $qrisStatis = trim(str_replace(["\r", "\n", "\t"], '', $qrisStatis));
 
         $entries = $this->parseTlv($qrisStatis);
         if (count($entries) === 0) {
