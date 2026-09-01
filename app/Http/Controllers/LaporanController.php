@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaksi;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -75,39 +76,64 @@ class LaporanController extends Controller
         return $daftar;
     }
 
-    public function index(Request $request)
+    // Susun baris per ITEM (bukan per transaksi), supaya nama menu & catatan
+    // ikut tampil di tabel riwayat, dikelompokkan per metode bayar.
+    private function barisPerItem($data): array
+    {
+        $baris = [];
+        foreach ($data as $t) {
+            foreach ($t->items as $idx => $it) {
+                $baris[] = [
+                    'transaksi_id' => $t->id,
+                    'kode' => $t->kode,
+                    'waktu' => $t->created_at,
+                    'nama_produk' => $it->nama_produk,
+                    'qty' => $it->qty,
+                    'subtotal' => $it->subtotal,
+                    'catatan' => $it->catatan,
+                    'total_transaksi' => $t->total,
+                    'item_pertama' => $idx === 0,
+                ];
+            }
+        }
+
+        return $baris;
+    }
+
+    private function semuaData(Request $request): array
     {
         [$data, $start, $end, $metode] = $this->ambilData($request);
         $ringkasan = $this->ringkasan($data);
-        $rekapMenu = $this->rekapMenu($data);
-        $daftarCatatan = $this->daftarCatatan($data);
 
-        return view('laporan.index', [
+        return [
             'data' => $data,
             'start' => $start,
             'end' => $end,
             'metode' => $metode,
             'totalTunai' => $ringkasan['totalTunai'],
             'totalQris' => $ringkasan['totalQris'],
-            'rekapMenu' => $rekapMenu,
-            'daftarCatatan' => $daftarCatatan,
-        ]);
+            'rekapMenu' => $this->rekapMenu($data),
+            'daftarCatatan' => $this->daftarCatatan($data),
+            'barisTunai' => $this->barisPerItem($data->where('metode_bayar', 'tunai')),
+            'barisQris' => $this->barisPerItem($data->where('metode_bayar', 'qris')),
+        ];
     }
 
-    public function cetak(Request $request)
+    public function index(Request $request)
     {
-        [$data, $start, $end, $metode] = $this->ambilData($request);
-        $ringkasan = $this->ringkasan($data);
-        $rekapMenu = $this->rekapMenu($data);
+        return view('laporan.index', $this->semuaData($request));
+    }
 
-        return view('laporan.cetak', [
-            'data' => $data,
-            'start' => $start,
-            'end' => $end,
-            'totalTunai' => $ringkasan['totalTunai'],
-            'totalQris' => $ringkasan['totalQris'],
-            'rekapMenu' => $rekapMenu,
-        ]);
+    // Download PDF sungguhan (bukan cuma dialog print browser).
+    public function pdf(Request $request)
+    {
+        $viewData = $this->semuaData($request);
+
+        $pdf = Pdf::loadView('laporan.pdf', $viewData)->setPaper('a4', 'portrait');
+
+        $nama = "Laporan-RotiBakarRomansa-{$viewData['start']}_{$viewData['end']}.pdf";
+
+        return $pdf->download($nama);
     }
 
     public function batalkan(Transaksi $transaksi)

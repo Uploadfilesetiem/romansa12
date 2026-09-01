@@ -79,32 +79,86 @@
 
   <div class="flex-between" style="margin-bottom:10px;">
     <div class="section-title">Riwayat Transaksi</div>
-    <a href="{{ route('laporan.cetak', request()->query()) }}" target="_blank">
-      <button type="button" class="btn-small ghost">🖨️ Cetak</button>
+    <a href="{{ route('laporan.pdf', request()->query()) }}">
+      <button type="button" class="btn-small ghost">⬇️ Download PDF</button>
     </a>
   </div>
 
-  <div class="card table-wrap">
-    <table class="list">
-      <thead><tr><th>Kode</th><th>Waktu</th><th>Metode</th><th class="text-right">Total</th><th class="text-center">Aksi</th></tr></thead>
+  <div class="card table-wrap" style="margin-bottom:16px;">
+    <div style="padding:12px 14px 0;">
+      <div class="section-title">Tunai</div>
+      <div class="section-sub">Menu &amp; catatan yang dibayar tunai pada periode ini.</div>
+    </div>
+    <table class="list" style="margin-top:8px;">
+      <thead>
+        <tr><th>Kode</th><th>Waktu</th><th>Menu</th><th>Catatan</th><th class="text-right">Qty</th><th class="text-right">Subtotal</th><th class="text-center">Aksi</th></tr>
+      </thead>
       <tbody>
-        @forelse ($data as $t)
+        @forelse ($barisTunai as $b)
           <tr>
-            <td>{{ $t->kode }}</td>
-            <td>{{ $t->created_at->translatedFormat('d M, H:i') }}</td>
-            <td style="text-transform:uppercase;">{{ $t->metode_bayar }}</td>
-            <td class="text-right">Rp{{ number_format($t->total,0,',','.') }}</td>
+            <td style="white-space:nowrap;">{{ $b['kode'] }}</td>
+            <td style="white-space:nowrap;">{{ $b['waktu']->translatedFormat('d M, H:i') }}</td>
+            <td>{{ $b['nama_produk'] }}</td>
+            <td>{{ $b['catatan'] ?? '-' }}</td>
+            <td class="text-right">{{ $b['qty'] }}</td>
+            <td class="text-right">Rp{{ number_format($b['subtotal'],0,',','.') }}</td>
             <td class="text-center">
-              <form method="POST" action="{{ route('laporan.batalkan', $t) }}" data-confirm="Batalkan transaksi {{ $t->kode }}? Stok roti akan dikembalikan.">
-                @csrf @method('DELETE')
-                <button type="submit" class="btn-mini hapus">Batalkan</button>
-              </form>
+              @if ($b['item_pertama'])
+                <form method="POST" action="{{ route('laporan.batalkan', $b['transaksi_id']) }}" data-confirm="Batalkan transaksi {{ $b['kode'] }}? Stok roti akan dikembalikan.">
+                  @csrf @method('DELETE')
+                  <button type="submit" class="btn-mini hapus">Batalkan</button>
+                </form>
+              @endif
             </td>
           </tr>
         @empty
-          <tr><td colspan="5" class="rekap-empty">Belum ada transaksi pada periode ini.</td></tr>
+          <tr><td colspan="7" class="rekap-empty">Belum ada transaksi tunai pada periode ini.</td></tr>
         @endforelse
       </tbody>
+      @if (count($barisTunai))
+        <tfoot>
+          <tr><td colspan="5">Total Tunai</td><td class="text-right" colspan="2">Rp{{ number_format($totalTunai,0,',','.') }}</td></tr>
+        </tfoot>
+      @endif
+    </table>
+  </div>
+
+  <div class="card table-wrap">
+    <div style="padding:12px 14px 0;">
+      <div class="section-title">QRIS</div>
+      <div class="section-sub">Menu &amp; catatan yang dibayar QRIS pada periode ini.</div>
+    </div>
+    <table class="list" style="margin-top:8px;">
+      <thead>
+        <tr><th>Kode</th><th>Waktu</th><th>Menu</th><th>Catatan</th><th class="text-right">Qty</th><th class="text-right">Subtotal</th><th class="text-center">Aksi</th></tr>
+      </thead>
+      <tbody>
+        @forelse ($barisQris as $b)
+          <tr>
+            <td style="white-space:nowrap;">{{ $b['kode'] }}</td>
+            <td style="white-space:nowrap;">{{ $b['waktu']->translatedFormat('d M, H:i') }}</td>
+            <td>{{ $b['nama_produk'] }}</td>
+            <td>{{ $b['catatan'] ?? '-' }}</td>
+            <td class="text-right">{{ $b['qty'] }}</td>
+            <td class="text-right">Rp{{ number_format($b['subtotal'],0,',','.') }}</td>
+            <td class="text-center">
+              @if ($b['item_pertama'])
+                <form method="POST" action="{{ route('laporan.batalkan', $b['transaksi_id']) }}" data-confirm="Batalkan transaksi {{ $b['kode'] }}? Stok roti akan dikembalikan.">
+                  @csrf @method('DELETE')
+                  <button type="submit" class="btn-mini hapus">Batalkan</button>
+                </form>
+              @endif
+            </td>
+          </tr>
+        @empty
+          <tr><td colspan="7" class="rekap-empty">Belum ada transaksi QRIS pada periode ini.</td></tr>
+        @endforelse
+      </tbody>
+      @if (count($barisQris))
+        <tfoot>
+          <tr><td colspan="5">Total QRIS</td><td class="text-right" colspan="2">Rp{{ number_format($totalQris,0,',','.') }}</td></tr>
+        </tfoot>
+      @endif
     </table>
   </div>
 @endsection
