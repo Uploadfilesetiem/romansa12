@@ -29,12 +29,32 @@ class KirimLaporanHarian extends Command
             return self::FAILURE;
         }
 
+        // Sisa stok SAAT INI (posisi akhir hari yang dilaporkan, karena
+        // perintah ini jalan tepat jam 00:00 setelah hari itu berakhir).
         $sisaStok = (int) (DB::table('stok_master')->where('id', 1)->value('stok') ?? 0);
 
         $rotiMasuk = (int) DB::table('stok_log')
             ->where('jenis', 'tambah')
             ->whereDate('created_at', $tanggal)
             ->sum('jumlah');
+
+        $terjual = (int) DB::table('stok_log')
+            ->where('jenis', 'penjualan')
+            ->whereDate('created_at', $tanggal)
+            ->sum('jumlah');
+
+        // Ada juga kemungkinan stok di-"Atur/Setting" langsung (bukan
+        // ditambah/terjual) pada hari itu, mis. saat stock opname. Kalau ada,
+        // hitungan "stok awal" di bawah ini tidak akurat 100% (karena "atur"
+        // itu reset nilai, bukan penambahan/pengurangan) — jumlah kejadiannya
+        // tetap kita tampilkan sebagai info tambahan biar kasir tahu.
+        $jumlahAtur = (int) DB::table('stok_log')
+            ->where('jenis', 'atur')
+            ->whereDate('created_at', $tanggal)
+            ->count();
+
+        // Stok Awal + Masuk - Terjual = Sisa Akhir  =>  Stok Awal = Sisa Akhir - Masuk + Terjual
+        $stokAwal = $sisaStok - $rotiMasuk + $terjual;
 
         $viewData = $laporan->semuaData($tanggal, $tanggal);
 
@@ -43,9 +63,12 @@ class KirimLaporanHarian extends Command
 
         $pesan = "📋 *Laporan Harian Roti Bakar Romansa*\n"
             ."Tanggal: {$tanggal}\n\n"
-            ."🍞 Sisa stok roti tawar: {$sisaStok}\n"
-            ."📥 Roti masuk hari ini: {$rotiMasuk}\n"
-            ."💵 Total Tunai: Rp".number_format($viewData['totalTunai'], 0, ',', '.')."\n"
+            ."📦 Sisa roti kemarin (stok awal): {$stokAwal}\n"
+            ."📥 Roti masuk: {$rotiMasuk}\n"
+            ."🛒 Terjual: {$terjual}\n"
+            ."🍞 Sisa stok akhir hari ini: {$sisaStok}\n"
+            .($jumlahAtur > 0 ? "⚠️ Catatan: stok sempat di-atur ulang manual {$jumlahAtur}x hari ini, jadi hitungan stok awal di atas mungkin kurang akurat.\n" : '')
+            ."\n💵 Total Tunai: Rp".number_format($viewData['totalTunai'], 0, ',', '.')."\n"
             ."📱 Total QRIS: Rp".number_format($viewData['totalQris'], 0, ',', '.')."\n\n"
             .'Laporan lengkap ada di file PDF terlampir.';
 
