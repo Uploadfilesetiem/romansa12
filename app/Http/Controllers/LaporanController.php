@@ -3,137 +3,42 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaksi;
+use App\Services\LaporanService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class LaporanController extends Controller
 {
-    private function ambilData(Request $request): array
+    public function __construct(private LaporanService $laporan)
     {
-        $start = $request->query('start', now()->toDateString());
-        $end = $request->query('end', now()->toDateString());
-        $metode = $request->query('metode');
-
-        $q = Transaksi::with('items')
-            ->whereDate('created_at', '>=', $start)
-            ->whereDate('created_at', '<=', $end);
-
-        if ($metode) {
-            $q->where('metode_bayar', $metode);
-        }
-
-        $data = $q->orderByDesc('created_at')->get();
-
-        return [$data, $start, $end, $metode];
     }
 
-    private function rekapMenu($data): array
-    {
-        $rekap = [];
-        foreach ($data as $t) {
-            foreach ($t->items as $it) {
-                $key = $it->nama_produk;
-                if (!isset($rekap[$key])) {
-                    $rekap[$key] = ['nama' => $key, 'qty' => 0, 'total' => 0];
-                }
-                $rekap[$key]['qty'] += $it->qty;
-                $rekap[$key]['total'] += $it->subtotal;
-            }
-        }
-        usort($rekap, fn ($a, $b) => $b['qty'] <=> $a['qty']);
-
-        return array_values($rekap);
-    }
-
-    private function ringkasan($data): array
+    private function paramTanggal(Request $request): array
     {
         return [
-            'totalTunai' => $data->where('metode_bayar', 'tunai')->sum('total'),
-            'totalQris' => $data->where('metode_bayar', 'qris')->sum('total'),
-        ];
-    }
-
-    // Daftar catatan bebas yang diketik kasir per item (mis. nama selai/topping
-    // spesifik), diurutkan dari yang paling baru, supaya bisa ditelusuri.
-    private function daftarCatatan($data): array
-    {
-        $daftar = [];
-        foreach ($data as $t) {
-            foreach ($t->items as $it) {
-                if (!empty($it->catatan)) {
-                    $daftar[] = [
-                        'waktu' => $t->created_at,
-                        'kode' => $t->kode,
-                        'nama_produk' => $it->nama_produk,
-                        'catatan' => $it->catatan,
-                    ];
-                }
-            }
-        }
-        usort($daftar, fn ($a, $b) => $b['waktu'] <=> $a['waktu']);
-
-        return $daftar;
-    }
-
-    // Susun baris per ITEM (bukan per transaksi), supaya nama menu & catatan
-    // ikut tampil di tabel riwayat, dikelompokkan per metode bayar.
-    private function barisPerItem($data): array
-    {
-        $baris = [];
-        foreach ($data as $t) {
-            foreach ($t->items as $idx => $it) {
-                $baris[] = [
-                    'transaksi_id' => $t->id,
-                    'kode' => $t->kode,
-                    'waktu' => $t->created_at,
-                    'nama_produk' => $it->nama_produk,
-                    'qty' => $it->qty,
-                    'subtotal' => $it->subtotal,
-                    'catatan' => $it->catatan,
-                    'total_transaksi' => $t->total,
-                    'item_pertama' => $idx === 0,
-                ];
-            }
-        }
-
-        return $baris;
-    }
-
-    private function semuaData(Request $request): array
-    {
-        [$data, $start, $end, $metode] = $this->ambilData($request);
-        $ringkasan = $this->ringkasan($data);
-
-        return [
-            'data' => $data,
-            'start' => $start,
-            'end' => $end,
-            'metode' => $metode,
-            'totalTunai' => $ringkasan['totalTunai'],
-            'totalQris' => $ringkasan['totalQris'],
-            'rekapMenu' => $this->rekapMenu($data),
-            'daftarCatatan' => $this->daftarCatatan($data),
-            'barisTunai' => $this->barisPerItem($data->where('metode_bayar', 'tunai')),
-            'barisQris' => $this->barisPerItem($data->where('metode_bayar', 'qris')),
+            $request->query('start', now()->toDateString()),
+            $request->query('end', now()->toDateString()),
+            $request->query('metode'),
         ];
     }
 
     public function index(Request $request)
     {
-        return view('laporan.index', $this->semuaData($request));
+        [$start, $end, $metode] = $this->paramTanggal($request);
+
+        return view('laporan.index', $this->laporan->semuaData($start, $end, $metode));
     }
 
     // Download PDF sungguhan (bukan cuma dialog print browser).
     public function pdf(Request $request)
     {
-        $viewData = $this->semuaData($request);
+        [$start, $end, $metode] = $this->paramTanggal($request);
+        $viewData = $this->laporan->semuaData($start, $end, $metode);
 
         $pdf = Pdf::loadView('laporan.pdf', $viewData)->setPaper('a4', 'portrait');
 
-        $nama = "Laporan-RotiBakarRomansa-{$viewData['start']}_{$viewData['end']}.pdf";
-
-        return $pdf->download($nama);
+        return $pdf->download("Laporan-RotiBakarRomansa-{$start}_{$end}.pdf");
     }
 
     public function batalkan(Transaksi $transaksi)
