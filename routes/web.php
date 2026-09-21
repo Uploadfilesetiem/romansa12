@@ -23,3 +23,6 @@ Route::get('/qris/gambar', [QrisController::class, 'gambar'])->name('qris.gambar
 Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
 Route::get('/laporan/pdf', [LaporanController::class, 'pdf'])->name('laporan.pdf');
 Route::delete('/laporan/{transaksi}', [LaporanController::class, 'batalkan'])->name('laporan.batalkan');
+
+use App\Http\Controllers\Api\OrderApiController;
+Route::post('/api/order-masuk', [OrderApiController::class, 'store']);
