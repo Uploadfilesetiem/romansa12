@@ -26,7 +26,8 @@ class OrderApiController extends Controller
 
         DB::beginTransaction();
         try {
-            $produk = Produk::where('nama_produk', 'LIKE', '%' . $validated['item_name'] . '%')->first();
+            // Menggunakan kolom 'nama' sesuai skema database produk Laravel
+            $produk = Produk::where('nama', 'LIKE', '%' . $validated['item_name'] . '%')->first();
 
             $transaksi = Transaksi::create([
                 'kode_transaksi' => 'WA-' . date('Ymd') . '-' . str_pad($validated['queue_number'], 3, '0', STR_PAD_LEFT),
