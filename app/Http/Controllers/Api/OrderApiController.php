@@ -26,21 +26,23 @@ class OrderApiController extends Controller
 
         DB::beginTransaction();
         try {
-            // Menggunakan kolom 'nama' sesuai skema database produk Laravel
+            // 1. Cari produk berdasarkan nama di tabel produk
             $produk = Produk::where('nama', 'LIKE', '%' . $validated['item_name'] . '%')->first();
 
+            // 2. Buat Transaksi (sesuai kolom tabel transaksi di kasir-laravel)
             $transaksi = Transaksi::create([
-                'kode_transaksi' => 'WA-' . date('Ymd') . '-' . str_pad($validated['queue_number'], 3, '0', STR_PAD_LEFT),
-                'nama_pelanggan' => $validated['customer_name'] . ' (WA)',
-                'total_harga'    => $validated['price'],
-                'metode_bayar'   => 'pending',
-                'status'         => 'menunggu_konfirmasi',
+                'kode'          => 'WA-' . date('Ymd') . '-' . str_pad($validated['queue_number'], 3, '0', STR_PAD_LEFT),
+                'total'         => $validated['price'],
+                'bayar'         => 0,
+                'kembali'       => 0,
+                'metode_bayar'  => 'pending',
+                'status'        => 'menunggu_konfirmasi',
             ]);
 
+            // 3. Buat Detail Item Transaksi
             TransaksiItem::create([
                 'transaksi_id' => $transaksi->id,
                 'produk_id'    => $produk ? $produk->id : null,
-                'nama_produk'  => $validated['item_name'],
                 'harga'        => $validated['price'],
                 'jumlah'       => 1,
                 'subtotal'     => $validated['price'],
