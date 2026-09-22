@@ -26,20 +26,20 @@ class OrderApiController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Cari produk berdasarkan nama
+            // 1. Cari produk berdasarkan nama pada tabel produk
             $produk = Produk::where('nama', 'LIKE', '%' . $validated['item_name'] . '%')->first();
 
-            // 2. Buat Transaksi (menggunakan kolom 'kembalian')
+            // 2. Buat Transaksi (sesuai persis skema tabel transaksi kasir-laravel)
             $transaksi = Transaksi::create([
                 'kode'          => 'WA-' . date('Ymd') . '-' . str_pad($validated['queue_number'], 3, '0', STR_PAD_LEFT),
                 'total'         => $validated['price'],
-                'bayar'         => 0,
+                'bayar'         => $validated['price'],
                 'kembalian'     => 0,
-                'metode_bayar'  => 'pending',
-                'status'        => 'menunggu_konfirmasi',
+                'metode_bayar'  => 'qris',
+                'status'        => 'selesai',
             ]);
 
-            // 3. Buat Detail Item Transaksi
+            // 3. Buat Detail Item Transaksi (sesuai persis skema tabel transaksi_item kasir-laravel)
             TransaksiItem::create([
                 'transaksi_id' => $transaksi->id,
                 'produk_id'    => $produk ? $produk->id : null,
